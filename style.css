@@ -31,6 +31,7 @@
 
 *, *::before, *::after{ box-sizing: border-box; }
 html{ scroll-behavior: smooth; }
+html, body{ overflow-x: hidden; overscroll-behavior-x: none; }
 @media (prefers-reduced-motion: reduce){
   html{ scroll-behavior: auto; }
   *, *::before, *::after{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
@@ -44,6 +45,7 @@ body{
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 img{ max-width: 100%; display: block; }
@@ -73,8 +75,16 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .skip-link:focus{ top: 12px; }
 
-/* Locks background scroll while the mobile nav drawer is open */
-body.nav-open{ overflow: hidden; }
+/* Locks background scroll while the mobile nav drawer is open.
+   Plain `overflow: hidden` on body is unreliable on iOS Safari, so JS
+   pairs this with `top: -<scrollY>px` and restores scroll position on close. */
+body.nav-open{
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
+  overflow: hidden;
+}
 
 /* =========================================================
    Scroll-reveal micro-interactions
@@ -118,8 +128,11 @@ body.nav-open{ overflow: hidden; }
   cursor: pointer;
   transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease, color .15s ease;
   white-space: nowrap;
+  touch-action: manipulation;
 }
-.btn:hover{ transform: translateY(-1px); }
+@media (hover: hover) and (pointer: fine){
+  .btn:hover{ transform: translateY(-1px); }
+}
 .btn-large{ padding: 15px 28px; font-size: 16px; }
 .btn-small{ padding: 8px 16px; font-size: 14px; }
 /* --signal-dark (not --signal) is the default here: white text on --signal
@@ -127,11 +140,13 @@ body.nav-open{ overflow: hidden; }
    --signal-dark gives ~5:1. --signal is reserved for hover/accents where it's
    not carrying body text, plus large decorative use (icons, borders). */
 .btn-accent{ background: var(--signal-dark); color: var(--white); }
-.btn-accent:hover{ background: #a8380f; }
 .btn-ghost{ background: transparent; color: var(--paper); border-color: rgba(244,245,242,0.35); }
-.btn-ghost:hover{ border-color: var(--paper); background: rgba(244,245,242,0.08); }
 .btn-outline{ background: transparent; color: var(--ink); border-color: var(--line); width: 100%; }
-.btn-outline:hover{ border-color: var(--ink); background: var(--paper-alt); }
+@media (hover: hover) and (pointer: fine){
+  .btn-accent:hover{ background: #a8380f; }
+  .btn-ghost:hover{ border-color: var(--paper); background: rgba(244,245,242,0.08); }
+  .btn-outline:hover{ border-color: var(--ink); background: var(--paper-alt); }
+}
 
 /* -------- Eyebrow / section headers -------- */
 .eyebrow{
@@ -153,6 +168,8 @@ body.nav-open{ overflow: hidden; }
   background: rgba(18,21,28,0.9);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(244,245,242,0.08);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 .header-inner{
   display: flex; align-items: center; justify-content: space-between;
@@ -172,13 +189,16 @@ body.nav-open{ overflow: hidden; }
   color: rgba(244,245,242,0.85); font-size: 15px; font-weight: 500;
   transition: color .15s ease;
 }
-.primary-nav a:not(.btn):hover{ color: var(--paper); }
+@media (hover: hover) and (pointer: fine){
+  .primary-nav a:not(.btn):hover{ color: var(--paper); }
+}
 
 .nav-toggle{
   display: none;
   flex-direction: column; justify-content: center; gap: 5px;
   width: 44px; height: 44px;
   background: transparent; border: none; cursor: pointer;
+  touch-action: manipulation;
 }
 .nav-toggle span{ width: 22px; height: 2px; background: var(--paper); display: block; transition: transform .2s ease, opacity .2s ease; }
 .nav-toggle[aria-expanded="true"] span:nth-child(1){ transform: translateY(7px) rotate(45deg); }
@@ -246,10 +266,12 @@ body.nav-open{ overflow: hidden; }
   padding: 28px;
   transition: box-shadow .2s ease, transform .2s ease, border-color .2s ease;
 }
-.service-card:hover{
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-3px);
-  border-color: transparent;
+@media (hover: hover) and (pointer: fine){
+  .service-card:hover{
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-3px);
+    border-color: transparent;
+  }
 }
 .service-icon{
   display: inline-flex; align-items: center; justify-content: center;
@@ -384,6 +406,11 @@ body.nav-open{ overflow: hidden; }
 }
 .form-row input:focus, .form-row textarea:focus{ border-color: var(--pine); outline: none; }
 .form-row.has-error input, .form-row.has-error textarea{ border-color: var(--signal); }
+@media (pointer: coarse){
+  /* Touchscreens auto-zoom on focus for inputs under 16px — this stops that
+     without changing the visible size on desktop/pointer devices. */
+  .form-row input, .form-row textarea{ font-size: 16px; }
+}
 .field-error{
   color: var(--signal-dark); font-size: 13px; margin: 6px 0 0; min-height: 1em;
 }
@@ -396,6 +423,7 @@ body.nav-open{ overflow: hidden; }
    Footer
    ========================================================= */
 .site-footer{ background: var(--ink); color: var(--paper); padding: 56px 0 0; }
+.site-footer .footer-bottom{ padding-bottom: calc(22px + env(safe-area-inset-bottom)); }
 .footer-inner{
   display: grid;
   grid-template-columns: 1.4fr 1fr auto;
@@ -407,22 +435,26 @@ body.nav-open{ overflow: hidden; }
 .logo-footer{ color: var(--paper); }
 .footer-nav ul{ display: flex; flex-direction: column; gap: 10px; }
 .footer-nav a{ color: rgba(244,245,242,0.75); font-size: 14px; }
-.footer-nav a:hover{ color: var(--paper); }
 .footer-social{ display: flex; gap: 12px; align-self: start; }
 .footer-social a{
   display: flex; align-items: center; justify-content: center;
-  width: 38px; height: 38px; border-radius: 50%;
+  width: 44px; height: 44px; border-radius: 50%;
   border: 1px solid rgba(244,245,242,0.25); color: var(--paper);
   transition: border-color .15s ease, background-color .15s ease;
 }
-.footer-social a:hover{ background: rgba(244,245,242,0.08); border-color: var(--paper); }
+@media (hover: hover) and (pointer: fine){
+  .footer-nav a:hover{ color: var(--paper); }
+  .footer-social a:hover{ background: rgba(244,245,242,0.08); border-color: var(--paper); }
+}
 
 .footer-bottom{
   display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
   padding: 22px 0; font-size: 13px; color: rgba(244,245,242,0.55);
 }
 .credit a{ color: var(--signal); font-weight: 600; }
-.credit a:hover{ text-decoration: underline; }
+@media (hover: hover) and (pointer: fine){
+  .credit a:hover{ text-decoration: underline; }
+}
 
 /* =========================================================
    Breakpoints
@@ -453,9 +485,13 @@ body.nav-open{ overflow: hidden; }
     flex-direction: column; align-items: flex-start;
     gap: 0;
     padding: 24px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    padding-left: calc(24px + env(safe-area-inset-left));
+    padding-right: calc(24px + env(safe-area-inset-right));
     transform: translateX(100%);
     transition: transform .25s ease;
-    height: calc(100vh - 68px);
+    height: calc(100vh - 68px); /* fallback for browsers without dvh */
+    height: calc(100dvh - 68px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -499,7 +535,11 @@ body.nav-open{ overflow: hidden; }
 @media (max-width: 480px){
   .wrap{ padding: 0 18px; }
   .header-inner{ height: 60px; }
-  .primary-nav{ inset: 60px 0 0 0; height: calc(100vh - 60px); }
+  .primary-nav{
+    inset: 60px 0 0 0;
+    height: calc(100vh - 60px); /* fallback */
+    height: calc(100dvh - 60px);
+  }
 
   .hero{ padding: 64px 0 44px; }
   .hero-sub{ font-size: 16.5px; }
