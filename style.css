@@ -73,6 +73,36 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .skip-link:focus{ top: 12px; }
 
+/* Locks background scroll while the mobile nav drawer is open */
+body.nav-open{ overflow: hidden; }
+
+/* =========================================================
+   Scroll-reveal micro-interactions
+   Only applied once JS confirms IntersectionObserver support
+   and the user hasn't requested reduced motion (see JS + the
+   prefers-reduced-motion block at the top of this file, which
+   already zeroes out transition-duration for those users).
+   ========================================================= */
+.reveal-ready [data-reveal]{
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .6s ease, transform .6s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.reveal-ready [data-reveal].is-visible{
+  opacity: 1;
+  transform: translateY(0);
+}
+/* Stagger cards within a grid slightly for a nicer cascade */
+.reveal-ready .services-grid [data-reveal]:nth-child(2){ transition-delay: .08s; }
+.reveal-ready .services-grid [data-reveal]:nth-child(3){ transition-delay: .16s; }
+.reveal-ready .services-grid [data-reveal]:nth-child(4){ transition-delay: .08s; }
+.reveal-ready .services-grid [data-reveal]:nth-child(5){ transition-delay: .16s; }
+.reveal-ready .services-grid [data-reveal]:nth-child(6){ transition-delay: .24s; }
+.reveal-ready .results-grid [data-reveal]:nth-child(2){ transition-delay: .1s; }
+.reveal-ready .results-grid [data-reveal]:nth-child(3){ transition-delay: .2s; }
+.reveal-ready .pricing-grid [data-reveal]:nth-child(2){ transition-delay: .1s; }
+.reveal-ready .pricing-grid [data-reveal]:nth-child(3){ transition-delay: .2s; }
+
 /* -------- Buttons -------- */
 .btn{
   display: inline-flex;
@@ -92,8 +122,12 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .btn:hover{ transform: translateY(-1px); }
 .btn-large{ padding: 15px 28px; font-size: 16px; }
 .btn-small{ padding: 8px 16px; font-size: 14px; }
-.btn-accent{ background: var(--signal); color: var(--white); }
-.btn-accent:hover{ background: var(--signal-dark); }
+/* --signal-dark (not --signal) is the default here: white text on --signal
+   is only ~3.66:1 contrast, which fails WCAG AA for normal-size button text.
+   --signal-dark gives ~5:1. --signal is reserved for hover/accents where it's
+   not carrying body text, plus large decorative use (icons, borders). */
+.btn-accent{ background: var(--signal-dark); color: var(--white); }
+.btn-accent:hover{ background: #a8380f; }
 .btn-ghost{ background: transparent; color: var(--paper); border-color: rgba(244,245,242,0.35); }
 .btn-ghost:hover{ border-color: var(--paper); background: rgba(244,245,242,0.08); }
 .btn-outline{ background: transparent; color: var(--ink); border-color: var(--line); width: 100%; }
@@ -143,7 +177,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .nav-toggle{
   display: none;
   flex-direction: column; justify-content: center; gap: 5px;
-  width: 40px; height: 40px;
+  width: 44px; height: 44px;
   background: transparent; border: none; cursor: pointer;
 }
 .nav-toggle span{ width: 22px; height: 2px; background: var(--paper); display: block; transition: transform .2s ease, opacity .2s ease; }
@@ -284,7 +318,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .ribbon{
   position: absolute; top: -14px; left: 28px;
-  background: var(--signal); color: var(--white);
+  background: var(--signal-dark); color: var(--white);
   font-family: var(--font-mono); font-size: 12px; font-weight: 700;
   letter-spacing: .04em; text-transform: uppercase;
   padding: 6px 12px; border-radius: 999px;
@@ -393,11 +427,26 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 /* =========================================================
    Breakpoints
    Mobile-first base above is tuned for ~1440 desktop already
-   via container width; add tablet + mobile overrides below.
+   via container width. Device tiers below, largest to smallest:
+
+     ≥1440px  Large desktop / wide monitor  (roomier container)
+     1024–1439px  Laptop / small desktop    (base styles above)
+     768–1023px   Tablet (landscape + iPad)  (nav collapses, 2-col grids)
+     481–767px    Large phone / tablet portrait (stacked layout)
+     361–480px    Standard phone
+     ≤360px       Small / narrow phone
+     + a short-height "landscape phone" fix
    ========================================================= */
 
-/* ---- Tablet: ≤900px (covers 768px) ---- */
-@media (max-width: 900px){
+/* ---- Large desktop: ≥1440px ---- */
+@media (min-width: 1440px){
+  :root{ --container: 1320px; }
+  .hero{ padding: 116px 0 76px; }
+  .services, .results, .pricing, .contact{ padding: 104px 0; }
+}
+
+/* ---- Tablet (landscape + iPad): ≤1023px ---- */
+@media (max-width: 1023px){
   .primary-nav{
     position: fixed; inset: 68px 0 0 0;
     background: var(--ink);
@@ -407,12 +456,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
     transform: translateX(100%);
     transition: transform .25s ease;
     height: calc(100vh - 68px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .primary-nav.is-open{ transform: translateX(0); }
   .primary-nav ul{ flex-direction: column; gap: 4px; width: 100%; }
   .primary-nav ul li{ width: 100%; }
-  .primary-nav ul a{ display: block; padding: 14px 4px; font-size: 17px; border-bottom: 1px solid rgba(244,245,242,0.08); }
-  .primary-nav .btn{ margin-top: 20px; width: 100%; }
+  .primary-nav ul a{ display: block; padding: 14px 4px; font-size: 17px; border-bottom: 1px solid rgba(244,245,242,0.08); min-height: 44px; }
+  .primary-nav .btn{ margin-top: 20px; width: 100%; min-height: 44px; }
   .nav-toggle{ display: flex; }
 
   .services-grid{ grid-template-columns: repeat(2, 1fr); }
@@ -426,22 +477,54 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .footer-social{ grid-column: 1 / -1; }
 }
 
-/* ---- Mobile: ≤600px (covers 360px) ---- */
-@media (max-width: 600px){
-  .wrap{ padding: 0 18px; }
-  .hero{ padding: 72px 0 48px; }
+/* ---- Large phone / tablet portrait: ≤767px ---- */
+@media (max-width: 767px){
+  .wrap{ padding: 0 20px; }
+  .hero{ padding: 80px 0 52px; }
   .hero h1{ max-width: none; }
   .hero-actions{ flex-direction: column; align-items: stretch; }
   .hero-actions .btn{ width: 100%; }
   .hero-stats{
     grid-template-columns: 1fr 1fr;
     row-gap: 20px;
+    column-gap: 20px;
     max-width: none;
   }
 
-  .services, .results, .pricing, .contact{ padding: 64px 0; }
+  .services, .results, .pricing, .contact{ padding: 68px 0; }
   .services-grid{ grid-template-columns: 1fr; }
+}
 
-  .footer-inner{ grid-template-columns: 1fr; }
-  .footer-bottom{ flex-direction: column; }
+/* ---- Standard phone: ≤480px ---- */
+@media (max-width: 480px){
+  .wrap{ padding: 0 18px; }
+  .header-inner{ height: 60px; }
+  .primary-nav{ inset: 60px 0 0 0; height: calc(100vh - 60px); }
+
+  .hero{ padding: 64px 0 44px; }
+  .hero-sub{ font-size: 16.5px; }
+
+  .services, .results, .pricing, .contact{ padding: 56px 0; }
+
+  .price-card{ padding: 26px 22px; }
+  .contact-form{ padding: 24px 20px; }
+
+  .footer-inner{ grid-template-columns: 1fr; gap: 28px; }
+  .footer-bottom{ flex-direction: column; align-items: flex-start; }
+}
+
+/* ---- Small / narrow phone: ≤360px ---- */
+@media (max-width: 360px){
+  .wrap{ padding: 0 16px; }
+  .hero h1{ font-size: clamp(28px, 8vw, 34px); }
+  .hero-stats{ grid-template-columns: 1fr; row-gap: 18px; }
+  .logo span{ font-size: 16px; }
+  .btn-large{ padding: 13px 22px; font-size: 15px; }
+}
+
+/* ---- Short-viewport phones in landscape (e.g. rotated phone) ---- */
+@media (max-height: 480px) and (orientation: landscape){
+  .primary-nav{ overflow-y: auto; padding-bottom: 32px; }
+  .hero{ padding: 56px 0 36px; }
+  .hero-actions{ margin-bottom: 32px; }
 }
