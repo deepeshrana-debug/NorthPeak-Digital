@@ -11,6 +11,7 @@
   if (navToggle && primaryNav) {
     var focusableSelector = 'a[href], button:not([disabled])';
     var lastFocusedEl = null;
+    var lockedScrollY = 0;
 
     function getFocusableEls() {
       return Array.prototype.slice.call(primaryNav.querySelectorAll(focusableSelector));
@@ -21,7 +22,13 @@
       navToggle.setAttribute('aria-expanded', 'true');
       navToggle.setAttribute('aria-label', 'Close menu');
       primaryNav.classList.add('is-open');
-      document.body.classList.add('nav-open'); // scroll lock, see CSS
+
+      // Scroll-lock: iOS Safari ignores plain overflow:hidden on body, so
+      // pin it in place at the current scroll offset and restore on close.
+      lockedScrollY = window.scrollY || window.pageYOffset || 0;
+      document.body.style.top = (-lockedScrollY) + 'px';
+      document.body.classList.add('nav-open');
+
       var focusables = getFocusableEls();
       if (focusables.length) focusables[0].focus();
       document.addEventListener('keydown', handleKeydown);
@@ -32,6 +39,8 @@
       navToggle.setAttribute('aria-label', 'Open menu');
       primaryNav.classList.remove('is-open');
       document.body.classList.remove('nav-open');
+      document.body.style.top = '';
+      window.scrollTo(0, lockedScrollY);
       document.removeEventListener('keydown', handleKeydown);
       if (returnFocus && lastFocusedEl) {
         lastFocusedEl.focus();
