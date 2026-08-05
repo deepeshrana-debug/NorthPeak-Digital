@@ -9,23 +9,99 @@
   var primaryNav = document.getElementById('primaryNav');
 
   if (navToggle && primaryNav) {
+    var focusableSelector = 'a[href], button:not([disabled])';
+    var lastFocusedEl = null;
+
+    function getFocusableEls() {
+      return Array.prototype.slice.call(primaryNav.querySelectorAll(focusableSelector));
+    }
+
+    function openMenu() {
+      lastFocusedEl = document.activeElement;
+      navToggle.setAttribute('aria-expanded', 'true');
+      navToggle.setAttribute('aria-label', 'Close menu');
+      primaryNav.classList.add('is-open');
+      document.body.classList.add('nav-open'); // scroll lock, see CSS
+      var focusables = getFocusableEls();
+      if (focusables.length) focusables[0].focus();
+      document.addEventListener('keydown', handleKeydown);
+    }
+
+    function closeMenu(returnFocus) {
+      navToggle.setAttribute('aria-expanded', 'false');
+      navToggle.setAttribute('aria-label', 'Open menu');
+      primaryNav.classList.remove('is-open');
+      document.body.classList.remove('nav-open');
+      document.removeEventListener('keydown', handleKeydown);
+      if (returnFocus && lastFocusedEl) {
+        lastFocusedEl.focus();
+      } else if (returnFocus) {
+        navToggle.focus();
+      }
+    }
+
+    function handleKeydown(e) {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        closeMenu(true);
+        return;
+      }
+      if (e.key !== 'Tab') return;
+
+      // Trap focus inside the open mobile menu
+      var focusables = getFocusableEls();
+      if (!focusables.length) return;
+      var first = focusables[0];
+      var last = focusables[focusables.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
     navToggle.addEventListener('click', function () {
       var isOpen = navToggle.getAttribute('aria-expanded') === 'true';
-      navToggle.setAttribute('aria-expanded', String(!isOpen));
-      navToggle.setAttribute('aria-label', isOpen ? 'Open menu' : 'Close menu');
-      primaryNav.classList.toggle('is-open', !isOpen);
+      if (isOpen) {
+        closeMenu(false);
+      } else {
+        openMenu();
+      }
     });
 
     // Close menu after choosing a link (mobile)
     primaryNav.querySelectorAll('a').forEach(function (link) {
       link.addEventListener('click', function () {
         if (primaryNav.classList.contains('is-open')) {
-          primaryNav.classList.remove('is-open');
-          navToggle.setAttribute('aria-expanded', 'false');
-          navToggle.setAttribute('aria-label', 'Open menu');
+          closeMenu(false);
         }
       });
     });
+  }
+
+  /* ---------- Footer year (never goes stale) ---------- */
+  var yearEl = document.getElementById('year');
+  if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+
+  /* ---------- Scroll-reveal micro-interactions ---------- */
+  var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var revealEls = document.querySelectorAll('[data-reveal]');
+
+  if (revealEls.length && !prefersReducedMotion && 'IntersectionObserver' in window) {
+    document.body.classList.add('reveal-ready');
+
+    var revealObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+    revealEls.forEach(function (el) { revealObserver.observe(el); });
   }
 
   /* ---------- Contact form validation ---------- */
